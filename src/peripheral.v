@@ -15,7 +15,9 @@ module tt_um_tqv_jesari_CAN (
 
     output [7:0]  uo_out,       // The output PMOD.  Each wire is only connected if this peripheral is selected.
                                 // Note that uo_out[0] is normally used for UART TX.
-
+    input  [7:0]  uio_in,
+    output [7:0]  uio_out, 
+    output [7:0]  uio_oe,
     input [5:0]   address,      // Address within this peripheral's address space
     input [31:0]  data_in,      // Data in to the peripheral, bottom 8, 16 or all 32 bits are valid on write.
 
