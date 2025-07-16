@@ -5,7 +5,7 @@
 
 `default_nettype none
 
-module tqvp_full_CAN (
+module tt_um_tqv_jesari_CAN (
     input         clk,          // Clock - the TinyQV project clock is normally set to 64MHz.
     input         rst_n,        // Reset_n - low to reset.
 
