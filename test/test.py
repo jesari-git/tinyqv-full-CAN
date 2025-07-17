@@ -28,7 +28,7 @@ async def test_project(dut):
     dut._log.info("Test project behavior")
 
     # Set an input value, in the example this will be added to the register value
-    dut.ui_in.value = 0x2
+    dut.ui_in.value = dut.uo_out.value
 
     # Test register write ID, DATA0, DATA1, DLCF
     await tqv.write_word_reg(0x0, 0x92345678)  
