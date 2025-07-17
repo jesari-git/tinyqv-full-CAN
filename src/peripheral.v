@@ -6,7 +6,6 @@
 `default_nettype none
 
 module tt_um_tqv_jesari_CAN (
-    input         ena,
     input         clk,          // Clock - the TinyQV project clock is normally set to 64MHz.
     input         rst_n,        // Reset_n - low to reset.
 
@@ -15,9 +14,7 @@ module tt_um_tqv_jesari_CAN (
 
     output [7:0]  uo_out,       // The output PMOD.  Each wire is only connected if this peripheral is selected.
                                 // Note that uo_out[0] is normally used for UART TX.
-    input  [7:0]  uio_in,
-    output [7:0]  uio_out, 
-    output [7:0]  uio_oe,
+
     input [5:0]   address,      // Address within this peripheral's address space
     input [31:0]  data_in,      // Data in to the peripheral, bottom 8, 16 or all 32 bits are valid on write.
 
@@ -40,7 +37,8 @@ module tt_um_tqv_jesari_CAN (
 	// peripheral instance
 	wire irqrx, irqrxerr, irqtx, can_tx, can_rx;
 	CAN CAN0 (
-		.clk(clk),
+		.clk(clk), .reset(~rst_n),
+		.cs(cs), 
 		.rs(address[3:2]),
 		.bytesel(bsel),
 		.d(data_in),
@@ -53,13 +51,13 @@ module tt_um_tqv_jesari_CAN (
 	);
 	assign user_interrupt = irqrx | irqrxerr | irqtx;
 	assign can_rx = ui_in[1];
-	assign can_tx = uo_out[1];
+	assign uo_out[1] = can_tx;
 	assign data_ready = 1'b1;
 	
     // List all unused inputs to prevent warnings
     // data_read_n is unused as none of our behaviour depends on whether
     // registers are being read.
-    wire _unused = &{rst_n, ui_in[0], ui_in[7:2], address[5:4], address[1:0], 1'b0};
+    wire _unused = &{ui_in[0], ui_in[7:2], address[5:4], address[1:0], 1'b0};
 
 endmodule
 
@@ -73,7 +71,8 @@ endmodule
 
 
 module CAN (
-	input 	clk,		// Main clock input 25MHz
+	input 	clk,		// Main clock input
+	input   reset,		// async reset
 
 	// Core interface
 	input 	cs,				// Peripheral chip select
@@ -127,25 +126,25 @@ end
 /////////////////////////////////////////////////////////////////////
 
 /// clock sync
-reg [1:0]rrxd=2'b11; // RXD, muted during TX, and registered 2 times
+reg [1:0]rrxd; //=2'b11; // RXD, muted during TX, and registered 2 times
 always @(posedge clk) rrxd<={rrxd[0],can_rx|txing};
 wire resinc = rrxd[0]^rrxd[1];	// change at the input if 1
 
-reg [9:0] divrx=0;		// Clock divider
+reg [9:0] divrx; //=0;		// Clock divider
 wire sample= (divrx==({1'b0,bauddiv[9:1]})); // Sampling pulse (at half bit time)
 wire clki0 = (divrx==0);	// Bit end (full bit time)
 always @ (posedge clk) 
 	divrx <= (resinc|clki0) ? bauddiv: divrx-1;
 
 // Bit destuffing
-reg [4:0]lastbits=0;
+reg [4:0]lastbits; //=0;
 always @ (posedge clk) if (sample) lastbits={lastbits[3:0],rrxd[0]};
 wire stuffbit = (lastbits==5'h0) || (lastbits==5'h1f);
 wire errorfrm = (lastbits==5'h0)&(~rrxd[0]);
 wire passive = (lastbits==5'h1f)&rrxd[0];
 
 // Input sample reg
-reg [20:0]sh=0;
+reg [20:0]sh;	//=0;
 // Note: delay required due to t_hold simulation issues
 always @ (posedge clk) if (sample&(~stuffbit)) #1 sh={sh[19:0],rrxd[0]};
 
@@ -159,11 +158,12 @@ parameter CRC		= 3'b101;
 parameter ACK		= 3'b110;
 parameter ERR		= 3'b111;
 
-reg [2:0]st=0;
+reg [2:0]st;
 wire btc=(~stuffbit)&bittc;
 //wire extbit=sh[1];
 
-always @(posedge clk)
+always @(posedge clk or posedge reset)
+if (reset) st<=IDLE; else
 begin
   if (sample)
      case (st)
@@ -187,7 +187,7 @@ wire [6:0]nbits=
 	((st==CRC)? 3: 0) ;
 
 // Bit counter
-reg [5:0]bitcnt=14;
+reg [5:0]bitcnt; //=14;
 wire bittc=(bitcnt==1);
 
 always @ (posedge clk) 
@@ -202,8 +202,9 @@ always @ (posedge clk)
 	if (sample&((~stuffbit))) bytecnt<=(st!=DATA) ? 0 : ((bitcnt[2:0]==1)? bytecnt+1: bytecnt);
 	
 // BIT ACK
-reg ackb;
-always @ (posedge clk) 
+reg ackb; //=0;
+always @ (posedge clk or posedge reset)
+  if (reset) ackb<=0; else  
 	if (st!=ACK) ackb<=1;
 	else if (clki0) ackb<=~(bitcnt[0]&bitcnt[1]);
 
@@ -238,11 +239,12 @@ always @ (posedge clk)
 		#2 crcr<= {crcr[13:0],1'b0}^((crcr[14]^rrxd[0])? 15'h4599 : 0 );
 // Flags
 wire badcrc=(crcr!=0);
-reg crcerr=0;		// CRC error
-reg stufferr=0;	// Bit stuffing error (Error frames)
-reg frmav=0;	// Frame available
-reg ovwr=0;		// Overwrite
-always @ (posedge clk) 
+reg crcerr; //=0;		// CRC error
+reg stufferr; //=0;	// Bit stuffing error (Error frames)
+reg frmav; //=0;	// Frame available
+reg ovwr; //=0;		// Overwrite
+always @ (posedge clk or posedge reset)
+  if (reset) {crcerr,stufferr,frmav,ovwr} <=0; else 
 	// Reading ID reg clears these flags
 	if (csid&(bytesel==4'b0000)) begin frmav<=0; ovwr<=0; crcerr<=0; stufferr<=0; end
 	else begin 
@@ -261,15 +263,16 @@ always @ (posedge clk)
 /////////////////////////////////////////////////////////////////////
 // Clear to Send timer (11 recessive bits before TX)
 wire cts = (ctscnt==10);
-reg [3:0]ctscnt=0;
+reg [3:0]ctscnt; //=0;
 always @(posedge clk) 
 	if (~can_rx) ctscnt<=0;
 	else if ((~cts)&clki0) ctscnt<=ctscnt+1;
 // TX clock
-reg [9:0] divtx=1;
+reg [9:0] divtx; //=1;
 wire clk0tx=(divtx==0);	// reload pulse
 wire txsample=(divtx=={1'b0,bauddiv[9:1]});
-always @ (posedge clk) 
+always @ (posedge clk or posedge reset)
+  if (reset) divtx<=0; else 
 	divtx <= ((txst==TXWAIT)&(~cts)&(~can_rx))? 0 : ((clk0tx) ? bauddiv: divtx-1);
 
 // registers
@@ -324,7 +327,7 @@ always @ (posedge clk)
 //// RTS flag (request tio send)
 wire txstrobe = csdlcf & bytesel[1] & d[8]; 
 wire txend = (txst==TXIDLE);
-reg rts=0;
+reg rts; //=0;
 always @(posedge clk) rts<= txstrobe ? 1 : (txend ? 0 : rts);
 
 // Bit error monitor (for arbitration)
@@ -340,7 +343,7 @@ parameter TXDATA	= 3'b101;	// Shifting data
 parameter TXCRC		= 3'b110;	// Shifting CRC
 parameter TXEOF		= 3'b111;	// Trailing recessive bits & ACK detection
 
-reg [2:0]txst=0;
+reg [2:0]txst;
 wire txing = (txst>TXID)&(txst<TXEOF);	// Transmitting: mute RX after ID
 
 // Data selection
@@ -351,13 +354,13 @@ wire txselout=	((txst==TXID) ? txid[31] : 0 ) |
 				(txst==TXIDLE) | (txst==TXWAIT) | (txst==TXEOF);
 
 // Bit stuffing
-reg [4:0]otx=0;
+reg [4:0]otx; //=0;
 always @(posedge clk) if (clk0tx) otx<={otx[3:0],txout};
 wire txstuff=((otx==0)|(otx==5'b11111))&(txst>TXSTART)&(txst<TXEOF);
 wire txout=txstuff ? (~otx[0]):txselout;
 
 ////// Bit counter //////
-reg [5:0]txbitcnt=0;
+reg [5:0]txbitcnt; //=0;
 // values for counter reload
 wire [5:0]txnbit=
 	((txst==TXWAIT) ? 1 					:0)	|
@@ -373,7 +376,8 @@ always @(posedge clk)
 	else if (clk0tx & (~txstuff)) txbitcnt<=(txbittc?txnbit:txbitcnt-1);
 
 ////// State machine //////
-always @(posedge clk)
+always @(posedge clk or posedge reset)
+if (reset) txst <= TXIDLE; else 
 begin
 	case (txst)
 	TXIDLE:		if (txstrobe) txst<=TXWAIT;
@@ -388,16 +392,16 @@ begin
 end
 
 ////// TX flags //////
-reg	lostf=0;	// Arbitration Lost flag
+reg	lostf; //=0;	// Arbitration Lost flag
 always @(posedge clk) 
 	if (txst==TXSTART) lostf<=0;
 	else if ((txst==TXID)&biterr&txsample) lostf<=1;
 	
-reg bitf=0;		// Bit error flag
+reg bitf; //=0;		// Bit error flag
 always @(posedge clk) 
 	if (txst==TXSTART) bitf<=0;
 	else if ((txst>TXID)&(txst<TXEOF)&biterr&txsample) bitf<=1;
-reg ackf=0;		// ACK received flag
+reg ackf; //=0;		// ACK received flag
 always @(posedge clk) 
 	if ((txst==TXEOF)&(txbitcnt==10)&txsample) ackf<=~can_rx;
 

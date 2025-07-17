@@ -38,7 +38,7 @@ module tt_um_tqv_peripheral_harness (
 
   // The peripheral under test - change the module name here
   // to match your preipheral.
-  tqvp_example user_peripheral(
+  tt_um_tqv_jesari_CAN user_peripheral(
     .clk(clk),
     .rst_n(rst_reg_n),
     .ui_in(ui_in_sync),
