@@ -179,12 +179,12 @@ begin
 end
 
 wire [6:0]nbits=
-	((st==IDLE)? 15: 0) |
-	((st==IDSTD)? (sh[1]?20:4): 0) |
-	((st==IDEXT)? 4: 0) |
-	((st==DLC)? (((sh[3:0]!=0)&(~rtr))?{sh[2:0],3'b000}:15): 0) |
-	((st==DATA)? 15: 0) |
-	((st==CRC)? 3: 0) ;
+	((st==IDLE)? 7'd15: 0) |
+	((st==IDSTD)? (sh[1]?7'd20:7'd4): 0) |
+	((st==IDEXT)? 7'd4: 0) |
+	((st==DLC)? (((sh[3:0]!=0)&(~rtr))?{sh[2:0],3'b000}:7'd15): 0) |
+	((st==DATA)? 7'd15: 0) |
+	((st==CRC)? 7'd3: 0) ;
 
 // Bit counter
 reg [5:0]bitcnt; //=14;
