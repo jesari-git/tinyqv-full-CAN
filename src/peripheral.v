@@ -138,7 +138,7 @@ always @ (posedge clk)
 
 // Bit destuffing
 reg [4:0]lastbits; //=0;
-always @ (posedge clk) if (sample) lastbits={lastbits[3:0],rrxd[0]};
+always @ (posedge clk) if (sample) lastbits<={lastbits[3:0],rrxd[0]};
 wire stuffbit = (lastbits==5'h0) || (lastbits==5'h1f);
 wire errorfrm = (lastbits==5'h0)&(~rrxd[0]);
 wire passive = (lastbits==5'h1f)&rrxd[0];
@@ -146,7 +146,7 @@ wire passive = (lastbits==5'h1f)&rrxd[0];
 // Input sample reg
 reg [20:0]sh;	//=0;
 // Note: delay required due to t_hold simulation issues
-always @ (posedge clk) if (sample&(~stuffbit)) sh={sh[19:0],rrxd[0]};
+always @ (posedge clk) if (sample&(~stuffbit)) sh<={sh[19:0],rrxd[0]};
 
 // State names
 parameter IDLE		= 3'b000;
