@@ -66,7 +66,7 @@ endmodule
 //                  simplified CAN bus controller                            //
 //                       Jesús Arias (2022)                                  //
 //                                                                           //
-// Public Domain code (bugs included).                                       //
+// Public Domain code (bugs included ).                                      //
 ///////////////////////////////////////////////////////////////////////////////
 
 
