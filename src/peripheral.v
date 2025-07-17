@@ -146,7 +146,7 @@ wire passive = (lastbits==5'h1f)&rrxd[0];
 // Input sample reg
 reg [20:0]sh;	//=0;
 // Note: delay required due to t_hold simulation issues
-always @ (posedge clk) if (sample&(~stuffbit)) #1 sh={sh[19:0],rrxd[0]};
+always @ (posedge clk) if (sample&(~stuffbit)) sh={sh[19:0],rrxd[0]};
 
 // State names
 parameter IDLE		= 3'b000;
