@@ -236,7 +236,7 @@ reg [14:0]crcr;
 always @ (posedge clk) 
 	if (st==IDLE) crcr<=0;
 	else if (sample&(~stuffbit)) 
-		#2 crcr<= {crcr[13:0],1'b0}^((crcr[14]^rrxd[0])? 15'h4599 : 0 );
+		crcr<= {crcr[13:0],1'b0}^((crcr[14]^rrxd[0])? 15'h4599 : 0 );
 // Flags
 wire badcrc=(crcr!=0);
 reg crcerr; //=0;		// CRC error
