@@ -129,14 +129,16 @@ end
 
 /// clock sync
 reg [1:0]rrxd; //=2'b11; // RXD, muted during TX, and registered 2 times
-always @(posedge clk) rrxd<={rrxd[0],can_rx|txing};
+always @(posedge clk or posedge reset) 
+	if (reset) rrxd<= 2'b11; else rrxd<={rrxd[0],can_rx|txing};
 wire resinc = rrxd[0]^rrxd[1];	// change at the input if 1
 
 reg [9:0] divrx; //=0;		// Clock divider
 wire sample= (divrx==({1'b0,bauddiv[9:1]})); // Sampling pulse (at half bit time)
 wire clki0 = (divrx==0);	// Bit end (full bit time)
-always @ (posedge clk) 
-	divrx <= (resinc|clki0) ? bauddiv: divrx-1;
+always @ (posedge clk or posedge reset) 
+	if (reset) divrx <= 0;
+	else divrx <= (resinc|clki0) ? bauddiv: divrx-1;
 
 // Bit destuffing
 reg [4:0]lastbits; //=0;
@@ -266,10 +268,10 @@ always @ (posedge clk or posedge reset)
 // Clear to Send timer (11 recessive bits before TX)
 wire cts = (ctscnt==10);
 reg [3:0]ctscnt; //=0;
-always @(posedge clk or posedge reset)
-    if (reset) ctscnt<=0; else
-	if (~can_rx) ctscnt<=0;
-	else if ((~cts)&clki0) ctscnt<=ctscnt+1;
+always @(posedge clk or posedge reset) 
+	if (reset) ctscnt<=0; else
+		if (~can_rx) ctscnt<=0;
+		else if ((~cts)&clki0) ctscnt<=ctscnt+1;
 // TX clock
 reg [9:0] divtx; //=1;
 wire clk0tx=(divtx==0);	// reload pulse
