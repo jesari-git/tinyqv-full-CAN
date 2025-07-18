@@ -18,12 +18,14 @@ All registers are 32-bit wide and are located at addresses multiple of 4:
 
 | Address | Name  | Access | Description                                                          |
 |---------|-------|--------|----------------------------------------------------------------------|
-| 0x00    | ID    |   R    | bits [28:0]: received ID, bit 30: RTR, bit 31: EXTended Frame        |
+| 0x00    | ID    |   R    | bits <28:0>: received ID (only bits <10:0> valid for standard frames)|
+|         |       |        | bit 30: RTR (remote request)                                         |
+|         |       |        | bit 31: EXT (extended frame with 29-bit ID)                          |
 |         |       |        |  (reading this reg. clears the FRMAV flag)                           |
-|         |       |   W    | bits [28:0]: transmitted ID, bit 30: RTR, bit 31: EXTended Frame     |
+|         |       |   W    | Same fields for transmitting                                         |
 |---------|-------|--------|----------------------------------------------------------------------|
 | 0x04    | DLCF  |  R/W   | DLC field, flags, baud divider, interrupt enable                     |
-|         |       |        | bits [3:0] (R/W): DLC (rx DLC on reads, tx DLC on writes)            |
+|         |       |        | bits <3:0> (R/W): DLC (rx DLC on reads, tx DLC on writes)            |
 |         |       |        | bit 4 (RO): STUFF. Stuffing bit error on rx                          |
 |         |       |        | bit 5 (RO): CRC. CRC error on rx                                     |
 |         |       |        | bit 6 FRMAV (RO): Valid frame available on rx                        |
@@ -32,7 +34,7 @@ All registers are 32-bit wide and are located at addresses multiple of 4:
 |         |       |        | bit 9 LOST (RO): Lost arbitration on tx                              |
 |         |       |        | bit 10 BITER (RO): Bit error on tx (bus level != can_tx)             |
 |         |       |        | bit 11 ACK (RO): tx frame was acknowledged by a receiver             |
-|         |       |        | bits [25:16] (R/W): BAUDDIV. Bit rate = f_clk / (BAUDDIV+1)          |
+|         |       |        | bits <25:16> (R/W): BAUDDIV. Bit rate = f_clk / (BAUDDIV+1)          |
 |         |       |        | bit 29 INTERX (R/W): Enable rx interrupt (when FRMAV is set)         |
 |         |       |        | bit 30 INTERR (R/W): Enable rx error interrupt (SFUFF or CRC set)    |
 |         |       |        | bit 31 INTTX (R/W): Enable tx interrupt (when RTS is zero)           |
@@ -51,8 +53,8 @@ Frame sending:
 - Write DATA0, and DATA1 if DLC>4, with the data of the frame.
 - Write ID with the ID of the frame. Set bit #31 if this is an extended frame with a 29-bit ID. Set
   bit #30 if this is a Remote Request (RTR) frame.
-- Write DLCF with the proper Baud divider and bit #8 (RTS) set.
-- Wait while RTS in DLCF is set.
+- Write DLCF with the DLC value, the proper Baud divider, and bit #8 (RTS) set.
+- Wait until RTS goes low.
 - Check for ACK in DLCF. If not set check for lost arbitration or bit errors and repeat the procedure.
   (notice that all registers have to be rewritten after a transmission)
 
@@ -62,7 +64,7 @@ Frame receiving:
   can be discarded)
 - Read the DATA0 and DATA1 registers. The number of valid bytes is in the DLC field of the DLCF reg.
 - Read the ID register. This clears the FRMAV flag and a new frame can be received.
-  (after FRMAV gets set we have a minimum time of 28 CAN bits before an overwriting)
+  (after FRMAV gets set we have a minimum time of 28 CAN bits before an overwriting error)
 
 
 ## External hardware
