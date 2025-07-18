@@ -266,7 +266,8 @@ always @ (posedge clk or posedge reset)
 // Clear to Send timer (11 recessive bits before TX)
 wire cts = (ctscnt==10);
 reg [3:0]ctscnt; //=0;
-always @(posedge clk) 
+always @(posedge clk or posedge reset)
+    if (reset) ctscnt<=0; else
 	if (~can_rx) ctscnt<=0;
 	else if ((~cts)&clki0) ctscnt<=ctscnt+1;
 // TX clock
