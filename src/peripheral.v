@@ -352,11 +352,11 @@ reg [2:0]txst;
 wire txing = (txst>TXID)&(txst<TXEOF);	// Transmitting: mute RX after ID
 
 // Data selection
-wire txselout=	((txst==TXID) ? txid[31] : 1'b1 ) &
-				((txst==TXDLC)? txdlc[5] : 1'b1 ) &
+wire txselout=	((txst==TXID) ? txid[31]     : 1'b1 ) &
+				((txst==TXDLC)? txdlc[5]     : 1'b1 ) &
 				((txst==TXDATA)? txdata0[31] : 1'b1 ) &
-				((txst==TXCRC)? txcrc[14] : 1'b1 )  ;
-//				(txst==TXIDLE) | (txst==TXWAIT) | (txst==TXEOF);
+				((txst==TXCRC)? txcrc[14]    : 1'b1 ) &
+				((txst==TXSTART)? 1'b0       : 1'b1 ) ;
 
 // Bit stuffing
 reg [4:0]otx; //=0;
