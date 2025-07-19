@@ -116,9 +116,14 @@ assign irqtx=irqen[2]&(~rts);
 reg [9:0]bauddiv=10'h3FF;
 reg [2:0]irqen=0;
 
-always @(posedge clk) if (csdlcf&bytesel[3]&bytesel[2]) begin
-	bauddiv <= d[25:16];
-	irqen   <= d[31:29];
+always @(posedge clk or posedge reset) if (csdlcf&bytesel[3]&bytesel[2]) begin
+	if (reset) begin 
+		bauddiv<=0; 
+		irqen <= 0;
+	end else begin 
+		bauddiv <= d[25:16];
+		irqen   <= d[31:29];
+	end
 end
 
 /////////////////////////////////////////////////////////////////////
