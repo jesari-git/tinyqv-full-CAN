@@ -338,7 +338,8 @@ always @ (posedge clk)
 wire txstrobe = csdlcf & bytesel[1] & d[8]; 
 wire txend = (txst==TXIDLE);
 reg rts; //=0;
-always @(posedge clk) rts<= txstrobe ? 1 : (txend ? 0 : rts);
+always @(posedge clk or posedge reset) 
+  if (reset) rts<=0; else rts<= txstrobe ? 1 : (txend ? 0 : rts);
 
 // Bit error monitor (for arbitration)
 wire biterr = (can_tx^can_rx);
