@@ -17,7 +17,7 @@ project:
   # Source files must be in ./src and you must list each source file separately, one per line.
   # Don't forget to also update `PROJECT_SOURCES` in test/Makefile.
   source_files:
-    - "peripheral.v"
+    - "tt_um_tqv_jesari_CAN.v"
     - "tt_wrapper.v"
     - "spi/falling_edge_detector.sv"
     - "spi/rising_edge_detector.sv"
